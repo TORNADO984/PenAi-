@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PenAI — AI-Powered Penetration Testing for the Cybersecurity Community</title>
+  <meta name="description" content="Scan any website for OWASP vulnerabilities instantly with PenAI's AI-powered penetration testing engine. Free for the cybersecurity community." />
+  <meta name="keywords" content="penetration testing, OWASP, cybersecurity, vulnerability scanner, AI security, bug bounty" />
+  <meta name="author" content="PenAI" />
+  <!-- Open Graph -->
+  <meta property="og:title" content="PenAI — AI-Powered Penetration Testing" />
+  <meta property="og:description" content="Scan any website. Find every OWASP vulnerability. Secure it instantly." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://penai.dev" />
+  <meta property="og:image" content="https://penai.dev/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: { bg: '#0a0a0a', card: '#141414', border: '#1e1e1e' },
+            neon: { green: '#00ff9d', blue: '#00b8ff', purple: '#7b2fff' },
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-cyber-bg text-gray-200 font-sans antialiased">
+
+  <!-- Matrix Rain Canvas -->
+  <canvas id="matrix-bg" aria-hidden="true"></canvas>
+
+  <!-- ═══════════════════════ NAVBAR ═══════════════════════ -->
+  <nav id="navbar" class="navbar px-4 lg:px-8 py-3" role="navigation" aria-label="Main navigation">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <!-- Logo -->
+      <a href="#home" class="flex items-center gap-2.5 group" aria-label="PenAI Home">
+        <div class="logo-shield">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 2L4 9V17C4 25.3 10 32.8 18 35C26 32.8 32 25.3 32 17V9L18 2Z" fill="none" stroke="#00ff9d" stroke-width="1.5"/>
+            <path d="M18 6L8 11V17C8 23.1 12.4 28.8 18 30.6C23.6 28.8 28 23.1 28 17V11L18 6Z" fill="rgba(0,255,157,0.06)" stroke="#00ff9d" stroke-width="0.5" stroke-dasharray="2 2"/>
+            <circle cx="18" cy="15" r="2" fill="#00ff9d"/>
+            <line x1="18" y1="17" x2="18" y2="24" stroke="#00ff9d" stroke-width="1.5"/>
+            <line x1="13" y1="15" x2="18" y2="15" stroke="#00ff9d" stroke-width="0.5" opacity="0.5"/>
+            <line x1="23" y1="15" x2="18" y2="15" stroke="#00ff9d" stroke-width="0.5" opacity="0.5"/>
+            <line x1="18" y1="10" x2="18" y2="15" stroke="#00ff9d" stroke-width="0.5" opacity="0.5"/>
+            <line x1="15" y1="20" x2="21" y2="20" stroke="#00ff9d" stroke-width="0.5" opacity="0.4"/>
+          </svg>
+        </div>
+        <span class="text-xl font-extrabold tracking-tight">
+          <span class="text-neon-green">Pen</span><span class="text-white">AI</span>
+        </span>
+      </a>
+
+      <!-- Desktop Links -->
+      <div class="hidden lg:flex items-center gap-1">
+        <a href="#home" class="nav-link active">Home</a>
+        <a href="#scanner" class="nav-link">Scan</a>
+        <a href="#owasp-library" class="nav-link">OWASP Library</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#community" class="nav-link">Community</a>
+        <a href="#blog" class="nav-link">Blog</a>
+        <a href="#pricing" class="nav-link">Pricing</a>
+      </div>
+
+      <!-- Desktop Auth Buttons -->
+      <div class="hidden lg:flex items-center gap-4" id="desktop-auth-container">
+        <div id="nav-user-profile" class="hidden flex items-center gap-3 bg-black/40 border border-white/10 rounded-full pl-1 pr-4 py-1 cursor-default hover:border-neon-green/30 hover:shadow-[0_0_15px_rgba(0,255,157,0.1)] transition-all">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-neon-green/20 to-neon-blue/20 flex items-center justify-center text-sm font-bold text-neon-green border border-neon-green/30 shadow-[inset_0_0_8px_rgba(0,255,157,0.2)]" id="nav-user-initial"></div>
+          <span id="nav-greeting" class="text-sm font-semibold text-white tracking-wide"></span>
+        </div>
+        <button data-auth-open class="nav-link cursor-pointer login-btn" aria-label="Login">Login</button>
+        <button data-auth-open class="btn-primary text-sm px-5 py-2 cursor-pointer signup-btn" aria-label="Sign up">Sign Up Free</button>
+        <button id="nav-logout-btn" class="btn-outline text-sm px-4 py-1.5 cursor-pointer hidden border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-colors">Logout</button>
+      </div>
+
+      <!-- Mobile Hamburger -->
+      <button id="mobile-menu-btn" class="lg:hidden flex flex-col gap-1.5 p-2 cursor-pointer" aria-label="Open menu" aria-expanded="false">
+        <span class="block w-6 h-0.5 bg-neon-green rounded transition-all"></span>
+        <span class="block w-6 h-0.5 bg-neon-green rounded transition-all"></span>
+        <span class="block w-4 h-0.5 bg-neon-green rounded transition-all"></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu Overlay -->
+  <div id="mobile-overlay" class="mobile-overlay" aria-hidden="true"></div>
+
+  <!-- Mobile Menu Panel -->
+  <div id="mobile-menu" class="mobile-menu" role="dialog" aria-label="Mobile navigation">
+    <div class="flex justify-between items-center mb-8">
+      <span class="text-lg font-bold"><span class="text-neon-green">Pen</span>AI</span>
+      <button id="mobile-menu-btn-close" class="text-gray-400 hover:text-neon-green text-2xl cursor-pointer" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="flex flex-col gap-4">
+      <a href="#home" class="nav-link text-base">Home</a>
+      <a href="#scanner" class="nav-link text-base">Scan</a>
+      <a href="#owasp-library" class="nav-link text-base">OWASP Library</a>
+      <a href="#how-it-works" class="nav-link text-base">How It Works</a>
+      <a href="#community" class="nav-link text-base">Community</a>
+      <a href="#blog" class="nav-link text-base">Blog</a>
+      <a href="#pricing" class="nav-link text-base">Pricing</a>
+      <hr class="border-gray-800 my-2" />
+      <hr class="border-gray-800 my-2" />
+      <div id="mobile-auth-container" class="flex flex-col gap-4">
+        <div id="mobile-user-profile" class="hidden flex items-center gap-3 bg-black/40 border border-white/10 rounded-xl p-3 shadow-inner">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-neon-green/20 to-neon-blue/20 flex items-center justify-center text-sm font-bold text-neon-green border border-neon-green/30 shadow-[inset_0_0_8px_rgba(0,255,157,0.2)]" id="mobile-user-initial"></div>
+          <span id="mobile-greeting" class="text-sm font-semibold text-white tracking-wide"></span>
+        </div>
+        <button data-auth-open class="btn-outline text-sm w-full cursor-pointer login-btn">Login</button>
+        <button data-auth-open class="btn-primary text-sm w-full cursor-pointer signup-btn">Sign Up Free</button>
+        <button id="mobile-logout-btn" class="btn-outline text-sm w-full cursor-pointer hidden border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-colors min-h-[44px]">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ MAIN CONTENT ═══════════════════════ -->
+  <main class="relative z-10">
+
+    <!-- ═══════════════════════ HERO SECTION ═══════════════════════ -->
+    <section id="home" class="hero-section min-h-screen flex items-center justify-center pt-20 pb-10">
+      <!-- Radial glow -->
+      <div class="hero-glow"></div>
+
+      <!-- CSS Floating particles -->
+      <div class="hero-particles" aria-hidden="true">
+        <div class="p" style="left:5%;  animation-delay:0s;   animation-duration:7s;"></div>
+        <div class="p" style="left:15%; animation-delay:1.2s; animation-duration:9s;"></div>
+        <div class="p" style="left:25%; animation-delay:0.5s; animation-duration:6s;"></div>
+        <div class="p" style="left:35%; animation-delay:2s;   animation-duration:10s;"></div>
+        <div class="p" style="left:45%; animation-delay:0.8s; animation-duration:8s;"></div>
+        <div class="p" style="left:55%; animation-delay:1.5s; animation-duration:7.5s;"></div>
+        <div class="p" style="left:65%; animation-delay:3s;   animation-duration:9s;"></div>
+        <div class="p" style="left:75%; animation-delay:0.3s; animation-duration:11s;"></div>
+        <div class="p" style="left:85%; animation-delay:2.5s; animation-duration:8.5s;"></div>
+        <div class="p" style="left:92%; animation-delay:1s;   animation-duration:7s;"></div>
+      </div>
+
+      <div class="relative z-10 text-center px-5 sm:px-4 max-w-5xl mx-auto">
+
+        <!-- Badge -->
+        <div class="fade-in-up delay-100 mb-6">
+          <span class="hero-badge">
+            <span class="dot"></span>
+            AI Pentest Engine v3.2 — Now Live
+          </span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold leading-[1.15] sm:leading-[1.1] mb-6 fade-in-up delay-200">
+          <span class="text-neon-green">Scan Any Website.</span><br />
+          <span class="text-white">Find Every OWASP Vulnerability.</span><br />
+          <span class="neon-blue-text">Secure It Instantly.</span>
+        </h1>
+
+        <!-- Subheadline -->
+        <p class="text-gray-400 text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 fade-in-up delay-300">
+          The only AI penetration testing platform built for the cybersecurity community.
+          <span class="text-gray-500">Real-time OWASP Top 10 + full vulnerability mapping.</span>
+        </p>
+
+        <!-- Prominent CTA -->
+        <div class="fade-in-up delay-400 mb-10">
+          <div class="btn-hero-wrap">
+            <a href="#scanner" class="btn-hero">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              Start Free Scan
+            </a>
+          </div>
+          <p class="text-gray-600 text-xs mt-3">No sign-up required · Results in seconds</p>
+        </div>
+
+        <!-- Trust Signals -->
+        <div class="trust-strip fade-in-up delay-500 mb-12">
+          <span><span class="icon">👥</span> Used by 15,000+ pentesters</span>
+          <span><span class="icon">🤖</span> Powered by advanced AI</span>
+          <span><span class="icon">✅</span> Zero false positives in demo</span>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row fade-in-up delay-600">
+          <div class="stat-card">
+            <div class="stat-number" data-count="10000">0</div>
+            <div class="stat-label">Scans Completed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" data-count="87" data-suffix="%">0</div>
+            <div class="stat-label">Sites With Critical OWASP Issues</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" data-count="250" data-suffix="+">0</div>
+            <div class="stat-label">Vulnerability Checks</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" data-count="99" data-suffix="%">0</div>
+            <div class="stat-label">Uptime Guarantee</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Gradient divider -->
+    <div class="gradient-divider"></div>
+
+    <!-- ═══════════════════════ AI SCANNER ═══════════════════════ -->
+    <section id="scanner" class="py-12 sm:py-20 px-4">
+      <div class="max-w-4xl mx-auto">
+        <!-- Section header -->
+        <div class="text-center mb-10">
+          <h2 class="section-title text-3xl md:text-4xl mb-3">AI Penetration Test Scanner</h2>
+          <p class="text-gray-500 max-w-xl mx-auto">Enter any URL below to run a comprehensive AI-powered security assessment across all OWASP vulnerability categories.</p>
+        </div>
+
+        <!-- Scanner Tabs (Hidden for guests, shown for logged-in users) -->
+        <div id="scanner-tabs" class="hidden flex justify-center gap-1.5 sm:gap-2 mb-6 sm:mb-10 bg-[#0d0d0d] p-1 sm:p-1.5 rounded-xl border border-gray-800/80 max-w-[420px] mx-auto shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+          <button id="tab-new-scan" class="flex-1 text-xs sm:text-sm font-semibold py-2.5 rounded-lg bg-neon-green/10 text-neon-green border border-neon-green/30 cursor-pointer transition-all shadow-[0_0_15px_rgba(0,255,157,0.1)] min-h-[40px]">New Scan</button>
+          <button id="tab-scan-history" class="flex-1 text-xs sm:text-sm font-semibold py-2.5 rounded-lg text-gray-400 hover:text-white border border-transparent hover:bg-white/5 cursor-pointer transition-all min-h-[40px]">My History</button>
+        </div>
+
+        <div id="new-scan-view">
+          <!-- Scanner Card -->
+        <div class="scanner-card">
+          <form id="scan-form" class="space-y-4">
+            <!-- URL Input -->
+            <div>
+              <label for="scan-url" class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1.5 block">Target URL</label>
+              <div class="flex gap-3">
+                <input type="text" id="scan-url" class="cyber-input flex-1 font-mono" placeholder="https://example.com" required aria-label="Target URL" />
+              </div>
+            </div>
+
+            <!-- Advanced Toggle -->
+            <button type="button" id="adv-toggle" class="flex items-center gap-2 text-xs text-gray-500 hover:text-neon-green transition-colors cursor-pointer">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="transition-transform duration-200"><path d="M6 9l6 6 6-6"/></svg>
+              Advanced Options
+            </button>
+
+            <!-- Advanced Panel -->
+            <div id="adv-panel" class="hidden space-y-3 p-4 rounded-xl bg-black/20 border border-gray-800/50">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs text-gray-500 mb-1 block">Scan Depth</label>
+                  <select class="cyber-input text-sm" aria-label="Scan depth">
+                    <option value="quick">⚡ Quick Scan (~30s)</option>
+                    <option value="deep" selected>🔍 Deep Scan (~2min)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs text-gray-500 mb-1 block">User-Agent</label>
+                  <select class="cyber-input text-sm" aria-label="User agent">
+                    <option>Default (PenAI Bot)</option>
+                    <option>Chrome 120</option>
+                    <option>Firefox 121</option>
+                    <option>Googlebot</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="text-xs text-gray-500 mb-1 block">Login Credentials (optional — mock only)</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input type="text" class="cyber-input text-sm" placeholder="Username" aria-label="Login username" />
+                  <input type="password" class="cyber-input text-sm" placeholder="Password" aria-label="Login password" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Scan Error Message -->
+            <div id="scan-error" class="hidden text-red-500 text-sm text-center"></div>
+
+            <!-- Scan Button -->
+            <button type="submit" id="scan-btn" class="btn-hero w-full justify-center mt-2 text-base py-4">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Run AI Penetration Test
+            </button>
+          </form>
+
+          <!-- Progress -->
+          <div id="scan-progress" class="hidden mt-6 space-y-3">
+            <div class="flex justify-between text-xs">
+              <span id="scan-progress-msg" class="text-gray-400">Initializing...</span>
+              <span id="scan-progress-pct" class="text-neon-green font-mono">0%</span>
+            </div>
+            <div class="progress-track">
+              <div id="scan-progress-bar" class="progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Report Container -->
+        <div id="scan-report" class="hidden mt-10"></div>
+        </div> <!-- End new-scan-view -->
+
+        <!-- Scan History View -->
+        <div id="scan-history-view" class="hidden">
+          
+          <!-- Search & Filter Controls -->
+          <div id="scan-history-controls" class="hidden flex flex-col sm:flex-row gap-4 mb-6">
+            <div class="relative flex-1">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="history-search" class="cyber-input pl-10 text-sm w-full" placeholder="Search by Target URL..." />
+            </div>
+            <div class="w-full sm:w-48">
+              <select id="history-filter" class="cyber-input text-sm w-full cursor-pointer">
+                <option value="All">All Severities</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="scan-history-loading" class="text-center text-gray-500 py-10 hidden">
+            <div class="inline-block w-8 h-8 border-2 border-neon-green/20 border-t-neon-green rounded-full animate-spin mb-3"></div>
+            <p>Loading scan history...</p>
+          </div>
+          <div id="scan-history-error" class="hidden text-center text-red-500 py-10 bg-red-500/10 border border-red-500/20 rounded-xl"></div>
+          <div id="scan-history-empty" class="hidden text-center text-gray-500 py-16 bg-black/20 border border-gray-800 rounded-xl">
+            <div class="text-4xl mb-4 opacity-50">📭</div>
+            <p class="text-lg font-semibold text-white mb-2">No scans found</p>
+            <p class="text-sm">You haven't run any security scans yet.</p>
+            <button onclick="document.getElementById('tab-new-scan').click()" class="btn-outline text-sm mt-4 cursor-pointer inline-block">Start Your First Scan</button>
+          </div>
+          <div id="scan-history-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 hidden">
+            <!-- Scans rendered here via JS -->
+          </div>
+          
+          <!-- History Report Container (for viewing past scans) -->
+          <div id="history-report-container" class="hidden mt-4">
+            <button id="back-to-history-btn" class="mb-6 text-gray-400 hover:text-neon-green text-sm font-semibold flex items-center gap-2 hover:underline cursor-pointer transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back to History
+            </button>
+            <div id="history-scan-report"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ OWASP LIBRARY ═══════════════════════ -->
+    <div class="gradient-divider"></div>
+    <section id="owasp-library" class="py-20 px-4">
+      <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-10">
+          <h2 class="section-title text-3xl md:text-4xl mb-3">OWASP Complete Library</h2>
+          <p class="text-gray-500 max-w-2xl mx-auto">Explore every OWASP Top 10 vulnerability category. Learn how each attack works, how PenAI detects it, and how to prevent it with real code.</p>
+        </div>
+
+        <!-- Search + Tabs -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+          <!-- Search -->
+          <div class="relative w-full sm:w-72">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="owasp-search" class="cyber-input pl-10 text-sm" placeholder="Search vulnerabilities..." aria-label="Search OWASP vulnerabilities" />
+          </div>
+
+          <!-- Tabs -->
+          <div class="flex gap-1 bg-black/20 rounded-xl p-1 border border-gray-800/40 overflow-x-auto">
+            <button data-owasp-tab="top10" class="text-xs font-semibold px-4 py-2 rounded-lg border-b-2 border-neon-green text-neon-green cursor-pointer whitespace-nowrap transition-colors active">Top 10</button>
+            <button data-owasp-tab="api" class="text-xs font-semibold px-4 py-2 rounded-lg border-b-2 border-transparent text-gray-500 cursor-pointer whitespace-nowrap transition-colors hover:text-gray-300">API Security</button>
+            <button data-owasp-tab="mobile" class="text-xs font-semibold px-4 py-2 rounded-lg border-b-2 border-transparent text-gray-500 cursor-pointer whitespace-nowrap transition-colors hover:text-gray-300">Mobile</button>
+            <button data-owasp-tab="cloud" class="text-xs font-semibold px-4 py-2 rounded-lg border-b-2 border-transparent text-gray-500 cursor-pointer whitespace-nowrap transition-colors hover:text-gray-300">Cloud</button>
+          </div>
+        </div>
+
+        <!-- Grid -->
+        <div id="owasp-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ HOW IT WORKS ═══════════════════════ -->
+    <div class="gradient-divider"></div>
+    <section id="how-it-works" class="py-20 px-4">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-14">
+          <h2 class="section-title text-3xl md:text-4xl mb-3">How PenAI Works</h2>
+          <p class="text-gray-500 max-w-xl mx-auto">Three simple steps from URL to fully secured application.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+          <!-- Connecting line (desktop) -->
+          <div class="hidden md:block absolute top-16 left-[18%] right-[18%] h-0.5 bg-gradient-to-r from-neon-green/30 via-neon-blue/30 to-neon-purple/30"></div>
+
+          <!-- Step 1 -->
+          <div class="hiw-card glass-card p-8 text-center relative" data-animate>
+            <div class="hiw-number">1</div>
+            <div class="text-4xl mb-4">🎯</div>
+            <h3 class="text-white font-bold text-lg mb-2">Input Target URL</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Enter any website URL. Configure scan depth, authentication, and custom headers for comprehensive coverage.</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="hiw-card glass-card p-8 text-center relative" data-animate>
+            <div class="hiw-number">2</div>
+            <div class="text-4xl mb-4">🤖</div>
+            <h3 class="text-white font-bold text-lg mb-2">AI Pentest Engine</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Our AI crawls the target, maps attack surfaces, and runs 247+ security checks across all OWASP categories in real-time.</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="hiw-card glass-card p-8 text-center relative" data-animate>
+            <div class="hiw-number">3</div>
+            <div class="text-4xl mb-4">📋</div>
+            <h3 class="text-white font-bold text-lg mb-2">Report + Fixes</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Receive a detailed report with vulnerability severity, proof-of-concepts, and code-level remediation steps you can apply instantly.</p>
+          </div>
+        </div>
+
+        <div class="text-center mt-12">
+          <a href="#scanner" class="btn-primary px-8 py-3 text-sm">Try It Now — Free</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ COMMUNITY ═══════════════════════ -->
+    <div class="gradient-divider"></div>
+    <section id="community" class="py-20 px-4">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10">
+          <h2 class="section-title text-3xl md:text-4xl mb-3">Community Dashboard</h2>
+          <p class="text-gray-500 max-w-xl mx-auto">Join 15,000+ security researchers sharing findings, bounties, and insights.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Post 1 -->
+          <div class="glass-card p-5 community-post" data-animate>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-neon-green/30 to-neon-blue/30 flex items-center justify-center text-sm font-bold text-neon-green">JD</div>
+              <div>
+                <p class="text-white text-sm font-semibold">@j_d3fender</p>
+                <p class="text-gray-600 text-xs">2 hours ago</p>
+              </div>
+              <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">Critical Finding</span>
+            </div>
+            <p class="text-gray-300 text-sm mb-2">Found a blind SQLI on a major e-commerce platform using PenAI's deep scan mode. Reported via HackerOne — $4,500 bounty! 🎉</p>
+            <div class="flex gap-4 text-xs text-gray-600">
+              <span>❤️ 142</span><span>💬 23</span><span>🔄 18</span>
+            </div>
+          </div>
+
+          <!-- Post 2 -->
+          <div class="glass-card p-5 community-post" data-animate>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-neon-purple/30 to-neon-blue/30 flex items-center justify-center text-sm font-bold text-neon-blue">SK</div>
+              <div>
+                <p class="text-white text-sm font-semibold">@sec_knight</p>
+                <p class="text-gray-600 text-xs">5 hours ago</p>
+              </div>
+              <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">Tutorial</span>
+            </div>
+            <p class="text-gray-300 text-sm mb-2">New guide: How to chain SSRF + IDOR for maximum impact. PenAI detected both vulnerabilities in under 30 seconds on my test target.</p>
+            <div class="flex gap-4 text-xs text-gray-600">
+              <span>❤️ 89</span><span>💬 15</span><span>🔄 31</span>
+            </div>
+          </div>
+
+          <!-- Post 3 -->
+          <div class="glass-card p-5 community-post" data-animate>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-orange-500/30 to-red-500/30 flex items-center justify-center text-sm font-bold text-orange-400">AX</div>
+              <div>
+                <p class="text-white text-sm font-semibold">@axploit</p>
+                <p class="text-gray-600 text-xs">12 hours ago</p>
+              </div>
+              <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neon-green/15 text-neon-green border border-neon-green/30">Bounty</span>
+            </div>
+            <p class="text-gray-300 text-sm mb-2">Used PenAI to scan 50 bug bounty targets this week. Found 12 valid vulnerabilities. This tool is a game changer for reconnaissance.</p>
+            <div class="flex gap-4 text-xs text-gray-600">
+              <span>❤️ 204</span><span>💬 41</span><span>🔄 55</span>
+            </div>
+          </div>
+
+          <!-- Post 4 -->
+          <div class="glass-card p-5 community-post" data-animate>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-neon-blue/30 to-neon-green/30 flex items-center justify-center text-sm font-bold text-neon-green">MR</div>
+              <div>
+                <p class="text-white text-sm font-semibold">@mr_recon</p>
+                <p class="text-gray-600 text-xs">1 day ago</p>
+              </div>
+              <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">Discussion</span>
+            </div>
+            <p class="text-gray-300 text-sm mb-2">Anyone else noticing a spike in A05 Security Misconfigurations on WordPress sites? PenAI flagged 3 in the last hour alone.</p>
+            <div class="flex gap-4 text-xs text-gray-600">
+              <span>❤️ 67</span><span>💬 29</span><span>🔄 8</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-8">
+          <button data-auth-open class="btn-outline px-6 py-2 text-sm cursor-pointer">Join the Community</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ BLOG ═══════════════════════ -->
+    <div class="gradient-divider"></div>
+    <section id="blog" class="py-20 px-4">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10">
+          <h2 class="section-title text-3xl md:text-4xl mb-3">Security Blog</h2>
+          <p class="text-gray-500 max-w-xl mx-auto">Stay up-to-date with the latest OWASP trends, attack techniques, and defense strategies.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Article 1 -->
+          <article class="glass-card overflow-hidden group cursor-pointer" data-animate>
+            <div class="h-40 bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center text-5xl group-hover:scale-105 transition-transform duration-300">💉</div>
+            <div class="p-5">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">Critical</span>
+                <span class="text-xs text-gray-600">May 12, 2026</span>
+              </div>
+              <h3 class="text-white font-bold mb-2 group-hover:text-neon-green transition-colors">SQL Injection Is Still #1: 2026 Attack Trends</h3>
+              <p class="text-gray-500 text-sm leading-relaxed">Despite decades of awareness, SQL injection remains the most exploited vulnerability. Here's why and what's changed in 2026.</p>
+              <span class="text-neon-green text-xs font-semibold mt-3 inline-block">Read More →</span>
+            </div>
+          </article>
+
+          <!-- Article 2 -->
+          <article class="glass-card overflow-hidden group cursor-pointer" data-animate>
+            <div class="h-40 bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 flex items-center justify-center text-5xl group-hover:scale-105 transition-transform duration-300">🤖</div>
+            <div class="p-5">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neon-blue/15 text-neon-blue border border-neon-blue/30">AI</span>
+                <span class="text-xs text-gray-600">May 8, 2026</span>
+              </div>
+              <h3 class="text-white font-bold mb-2 group-hover:text-neon-green transition-colors">How AI Is Changing Penetration Testing Forever</h3>
+              <p class="text-gray-500 text-sm leading-relaxed">AI-powered scanning can detect vulnerabilities 47x faster than manual testing. We explore the technology behind PenAI's engine.</p>
+              <span class="text-neon-green text-xs font-semibold mt-3 inline-block">Read More →</span>
+            </div>
+          </article>
+
+          <!-- Article 3 -->
+          <article class="glass-card overflow-hidden group cursor-pointer" data-animate>
+            <div class="h-40 bg-gradient-to-br from-neon-green/20 to-yellow-500/20 flex items-center justify-center text-5xl group-hover:scale-105 transition-transform duration-300">🛡️</div>
+            <div class="p-5">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neon-green/15 text-neon-green border border-neon-green/30">Guide</span>
+                <span class="text-xs text-gray-600">May 3, 2026</span>
+              </div>
+              <h3 class="text-white font-bold mb-2 group-hover:text-neon-green transition-colors">OWASP Top 10 (2025 Update): What's New?</h3>
+              <p class="text-gray-500 text-sm leading-relaxed">The latest OWASP Top 10 update reshuffles priorities. We break down every change and what it means for your security posture.</p>
+              <span class="text-neon-green text-xs font-semibold mt-3 inline-block">Read More →</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════ PRICING ═══════════════════════ -->
+    <div class="gradient-divider"></div>
+    <section id="pricing" class="py-20 px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-12">
+          <h2 class="section-title text-3xl md:text-4xl mb-3">Simple, Transparent Pricing</h2>
+          <p class="text-gray-500 max-w-xl mx-auto">Start for free. Upgrade when you need unlimited power.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+          <!-- Free Tier -->
+          <div class="glass-card p-8 relative pricing-card" data-animate>
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-white font-bold text-xl">Free</h3>
+                <p class="text-gray-500 text-sm">For individuals & learning</p>
+              </div>
+              <span class="hero-badge">Most Popular</span>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-extrabold text-white">$0</span>
+              <span class="text-gray-500 text-sm">/forever</span>
+            </div>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> 5 scans per day</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> OWASP Top 10 checks</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> Basic remediation tips</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> Community access</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> OWASP Library</li>
+              <li class="flex items-center gap-2 text-sm text-gray-500"><span class="text-gray-700">✗</span> API access</li>
+              <li class="flex items-center gap-2 text-sm text-gray-500"><span class="text-gray-700">✗</span> CI/CD integration</li>
+              <li class="flex items-center gap-2 text-sm text-gray-500"><span class="text-gray-700">✗</span> Priority support</li>
+            </ul>
+            <a href="#scanner" class="btn-outline w-full text-center block py-3 text-sm">Start Free</a>
+          </div>
+
+          <!-- Pro Tier -->
+          <div class="glass-card p-8 relative pricing-card pricing-pro glow-border" data-animate>
+            <div class="absolute -top-3 right-6">
+              <span class="text-xs font-bold px-3 py-1 rounded-full bg-gradient-to-r from-neon-green to-neon-blue text-black">RECOMMENDED</span>
+            </div>
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h3 class="text-white font-bold text-xl">Pro</h3>
+                <p class="text-gray-500 text-sm">For teams & professionals</p>
+              </div>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-extrabold text-neon-green">$29</span>
+              <span class="text-gray-500 text-sm">/month</span>
+            </div>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> Unlimited scans</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> All 247+ vulnerability checks</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> Advanced code remediation</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> Full API access</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> CI/CD integration</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> PDF/JSON exports</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> Team dashboards</li>
+              <li class="flex items-center gap-2 text-sm text-gray-300"><span class="text-neon-green">✓</span> Priority support</li>
+            </ul>
+            <button data-auth-open class="btn-primary w-full py-3 text-sm cursor-pointer">Get Pro — 14-Day Free Trial</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════ AUTH MODAL ═══════════════════════ -->
+  <div id="auth-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Authentication">
+    <div class="modal-content">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-bold"><span class="text-neon-green">Pen</span>AI</h2>
+        <button data-auth-close class="text-gray-500 hover:text-neon-green text-2xl cursor-pointer" aria-label="Close">&times;</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex border-b border-gray-800 mb-6">
+        <button data-auth-tab="login" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-[#00ff9d] text-[#00ff9d] active cursor-pointer">Login</button>
+        <button data-auth-tab="signup" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-gray-500 cursor-pointer">Sign Up</button>
+      </div>
+
+      <!-- Login Panel -->
+      <div data-auth-panel="login">
+        <form id="login-form" class="space-y-4">
+          <input type="email" id="login-email" placeholder="Email" class="cyber-input" required aria-label="Email" />
+          <input type="password" id="login-password" placeholder="Password" class="cyber-input" required aria-label="Password" />
+          <div id="login-error" class="hidden text-red-500 text-sm text-center"></div>
+          <div id="login-success" class="hidden text-neon-green text-sm text-center"></div>
+          <button type="submit" id="login-btn" class="btn-primary w-full py-3 cursor-pointer flex justify-center items-center gap-2">
+            <span>Login</span>
+            <div id="login-spinner" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+          </button>
+        </form>
+      </div>
+
+      <!-- Signup Panel -->
+      <div data-auth-panel="signup" class="hidden">
+        <form id="signup-form" class="space-y-4">
+          <input type="text" id="signup-name" placeholder="Username" class="cyber-input" required aria-label="Username" />
+          <input type="email" id="signup-email" placeholder="Email" class="cyber-input" required aria-label="Email" />
+          <input type="password" id="signup-password" placeholder="Password" class="cyber-input" required aria-label="Password" />
+          <div id="signup-error" class="hidden text-red-500 text-sm text-center"></div>
+          <div id="signup-success" class="hidden text-neon-green text-sm text-center"></div>
+          <button type="submit" id="signup-btn" class="btn-primary w-full py-3 cursor-pointer flex justify-center items-center gap-2">
+            <span>Create Account</span>
+            <div id="signup-spinner" class="hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ LOGOUT CONFIRM MODAL ═══════════════════════ -->
+  <div id="logout-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Confirm Logout">
+    <div class="modal-content max-w-sm text-center">
+      <div class="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 mx-auto mb-4">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+      <h3 class="text-xl font-bold text-white mb-2">Ready to Leave?</h3>
+      <p class="text-gray-400 text-sm mb-8">Are you sure you want to log out of your PenAI account?</p>
+      
+      <div class="flex gap-3">
+        <button id="cancel-logout-btn" class="flex-1 btn-outline py-2.5 text-sm cursor-pointer">Cancel</button>
+        <button id="confirm-logout-btn" class="flex-1 btn-primary py-2.5 text-sm cursor-pointer !bg-red-500 hover:!bg-red-600 !border-red-500 !shadow-[0_0_15px_rgba(239,68,68,0.3)] !text-white">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <footer class="relative z-10 border-t border-gray-800/50 mt-10">
+    <div class="max-w-6xl mx-auto px-4 py-14">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+        <!-- Brand -->
+        <div class="col-span-2 md:col-span-1">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-lg font-extrabold"><span class="text-neon-green">Pen</span><span class="text-white">AI</span></span>
+          </div>
+          <p class="text-gray-500 text-xs leading-relaxed mb-4">AI-powered penetration testing built for the cybersecurity community. Scan, detect, and fix OWASP vulnerabilities instantly.</p>
+          <div class="flex gap-3">
+            <a href="#" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:text-neon-green hover:bg-neon-green/10 transition-colors" aria-label="GitHub">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            </a>
+            <a href="#" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:text-neon-blue hover:bg-neon-blue/10 transition-colors" aria-label="Discord">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>
+            </a>
+            <a href="#" class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-500 hover:text-neon-green hover:bg-neon-green/10 transition-colors" aria-label="Twitter / X">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Product -->
+        <div>
+          <h4 class="text-white text-sm font-semibold mb-3">Product</h4>
+          <ul class="space-y-2">
+            <li><a href="#scanner" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Scanner</a></li>
+            <li><a href="#owasp-library" class="text-gray-500 text-xs hover:text-neon-green transition-colors">OWASP Library</a></li>
+            <li><a href="#pricing" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Pricing</a></li>
+            <li><a href="#" class="text-gray-500 text-xs hover:text-neon-green transition-colors">API Docs</a></li>
+            <li><a href="#" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Changelog</a></li>
+          </ul>
+        </div>
+
+        <!-- Resources -->
+        <div>
+          <h4 class="text-white text-sm font-semibold mb-3">Resources</h4>
+          <ul class="space-y-2">
+            <li><a href="#blog" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Blog</a></li>
+            <li><a href="#how-it-works" class="text-gray-500 text-xs hover:text-neon-green transition-colors">How It Works</a></li>
+            <li><a href="#" class="text-gray-500 text-xs hover:text-neon-green transition-colors">OWASP Testing Guide</a></li>
+            <li><a href="#" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Bug Bounty Tips</a></li>
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <h4 class="text-white text-sm font-semibold mb-3">Legal</h4>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Privacy Policy</a></li>
+            <li><a href="#" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Terms of Service</a></li>
+            <li><a href="#" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Responsible Disclosure</a></li>
+            <li><a href="#" class="text-gray-500 text-xs hover:text-neon-green transition-colors">Cookie Policy</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="gradient-divider mb-6"></div>
+      <div class="flex flex-col md:flex-row items-center justify-between gap-3">
+        <p class="text-gray-600 text-xs">&copy; 2026 <span class="text-neon-green">PenAI</span>. All rights reserved.</p>
+        <p class="text-gray-700 text-[10px] max-w-md text-center md:text-right">⚠️ This tool is for educational and authorized testing purposes only. Unauthorized scanning of systems you do not own is illegal. Always obtain written permission.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/owasp-library.js"></script>
+</body>
+</html>
