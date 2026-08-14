@@ -583,18 +583,9 @@ function initScanner() {
     scanBtn.disabled = true;
     scanBtn.innerHTML = '<span class="animate-spin inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full"></span> Scanning...';
 
-    // Run stages
-    for (const stage of SCAN_STAGES) {
-      progressBar.style.width = stage.pct + '%';
-      progressMsg.textContent = stage.msg;
-      progressPct.textContent = stage.pct + '%';
-      await new Promise(r => setTimeout(r, 300 + Math.random() * 200)); // Make the fake progress slightly faster
-    }
-
-    let backendVulnerabilities = [];
     try {
       if (token) {
-        // API call to backend for logged in users
+        // 1. Submit scan request to backend
         const response = await fetch('http://localhost:5000/api/scans', {
           method: 'POST',
           headers: {
@@ -610,24 +601,98 @@ function initScanner() {
           throw new Error(data.message || data.errors?.[0]?.msg || 'Failed to start scan');
         }
 
-        // Capture backend vulnerabilities if the response includes them
-        if (data.data && Array.isArray(data.data.vulnerabilities)) {
-          backendVulnerabilities = data.data.vulnerabilities;
+        const scanData = data.data;
+
+        // 2. If scan is pending/scanning (Real ZAP scan in progress), poll progress
+        if (scanData.status === 'pending' || scanData.status === 'scanning') {
+          const scanId = scanData._id;
+          let isComplete = false;
+          let consecutiveErrors = 0;
+          const MAX_ERRORS = 8; // tolerate up to 8 consecutive fetch failures (e.g. backend restart)
+
+          while (!isComplete) {
+            await new Promise(r => setTimeout(r, 3000));
+
+            let currentScan;
+            try {
+              const pollRes = await fetch(`http://localhost:5000/api/scans/${scanId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              const pollData = await pollRes.json();
+              if (!pollRes.ok) throw new Error(pollData.message || 'Error polling scan status');
+              currentScan = pollData.data;
+              consecutiveErrors = 0; // reset error counter on success
+            } catch (pollErr) {
+              consecutiveErrors++;
+              progressMsg.textContent = `ZAP scan in progress... reconnecting (${consecutiveErrors}/${MAX_ERRORS})`;
+              if (consecutiveErrors >= MAX_ERRORS) {
+                throw new Error('Lost connection to server after multiple retries. The ZAP scan may still be running — check "My History" tab in a few minutes.');
+              }
+              await new Promise(r => setTimeout(r, 5000)); // longer wait before retry
+              continue;
+            }
+
+            const pct = currentScan.progressPct || 0;
+            const msg = currentScan.progressMessage || 'Scanning...';
+
+            progressBar.style.width = pct + '%';
+            progressPct.textContent = pct + '%';
+            progressMsg.textContent = msg;
+
+            if (currentScan.status === 'complete') {
+              isComplete = true;
+              progressBar.style.width = '100%';
+              progressPct.textContent = '100%';
+              progressMsg.innerHTML = '<span class="text-neon-green font-semibold">✓ OWASP ZAP Scan complete & saved!</span>';
+              await new Promise(r => setTimeout(r, 800));
+              progressWrap.classList.add('hidden');
+
+              const report = generateReport(url);
+              report.score = currentScan.score;
+              report.severity = currentScan.severity;
+              if (currentScan.scanTime) report.scanTime = currentScan.scanTime;
+              if (currentScan.vulnerabilities && currentScan.vulnerabilities.length > 0) {
+                report.vulnerabilities = currentScan.vulnerabilities;
+              }
+              renderReportUI(report, reportWrap);
+              return;
+            } else if (currentScan.status === 'failed') {
+              throw new Error(currentScan.progressMessage || 'ZAP scan failed');
+            }
+          }
+          return;
         }
+
+        // Direct complete scan (fallback)
+        progressBar.style.width = '100%';
+        progressPct.textContent = '100%';
+        progressMsg.innerHTML = '<span class="text-neon-green font-semibold">✓ Scan complete & saved!</span>';
+        await new Promise(r => setTimeout(r, 800));
+        progressWrap.classList.add('hidden');
+
+        const report = generateReport(url);
+        if (scanData.vulnerabilities && scanData.vulnerabilities.length > 0) {
+          report.vulnerabilities = scanData.vulnerabilities;
+        }
+        renderReportUI(report, reportWrap);
+        return;
+      }
+
+      // Guest / Unauthenticated simulation mode
+      for (const stage of SCAN_STAGES) {
+        progressBar.style.width = stage.pct + '%';
+        progressMsg.textContent = stage.msg;
+        progressPct.textContent = stage.pct + '%';
+        await new Promise(r => setTimeout(r, 250));
       }
 
       progressBar.style.width = '100%';
       progressPct.textContent = '100%';
-      progressMsg.innerHTML = token ? '<span class="text-neon-green font-semibold">✓ Scan complete & saved!</span>' : '<span class="text-neon-green font-semibold">✓ Scan complete!</span>';
+      progressMsg.innerHTML = '<span class="text-neon-green font-semibold">✓ Demo Scan complete!</span>';
       await new Promise(r => setTimeout(r, 800));
       progressWrap.classList.add('hidden');
 
-      // Generate & render report (UI representation)
       const report = generateReport(url);
-      // Attach backend vulnerabilities to the report
-      if (backendVulnerabilities.length > 0) {
-        report.vulnerabilities = backendVulnerabilities;
-      }
       renderReportUI(report, reportWrap);
 
     } catch (error) {
@@ -643,6 +708,7 @@ function initScanner() {
       scanBtn.disabled = false;
       scanBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Run AI Penetration Test';
     }
+
   });
 }
 

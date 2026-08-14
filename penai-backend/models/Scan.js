@@ -27,10 +27,29 @@ const scanSchema = new mongoose.Schema({
       {
         name: { type: String },
         description: { type: String },
-        severity: { type: String, enum: ['Critical', 'High', 'Medium', 'Low'] },
+        severity: { type: String, enum: ['Critical', 'High', 'Medium', 'Low', 'Info'] },
+        solution: { type: String },
+        url: { type: String },
       },
     ],
     default: [],
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'scanning', 'complete', 'failed'],
+    default: 'pending',
+  },
+  progressMessage: {
+    type: String,
+    default: 'Initializing scan...',
+  },
+  progressPct: {
+    type: Number,
+    default: 0,
+  },
+  scanTime: {
+    type: Number,
+    default: 0,
   },
   scannedAt: {
     type: Date,
