@@ -37,6 +37,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/scans', require('./routes/scanRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
 
 // ---------- Error Handling Middleware ----------
 

@@ -274,7 +274,33 @@ function renderReportUI(report, containerElement) {
       </div>
     </div>
 
-    <!-- ═══ Detected Vulnerabilities Section ═══ -->
+    <!-- ═══ ✨ Gemini AI Executive Briefing Section ═══ -->
+    <div id="ai-executive-section" class="glass-card mb-8 overflow-hidden border border-neon-purple/30 bg-gradient-to-br from-neon-purple/5 via-black/40 to-neon-blue/5 relative" data-animate>
+      <div class="p-5 md:p-6 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-neon-purple/20 border border-neon-purple/40 flex items-center justify-center text-neon-purple shadow-[0_0_15px_rgba(123,47,255,0.3)]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white">AI Executive Briefing & Threat Posture</h3>
+              <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-neon-purple/20 text-neon-purple border border-neon-purple/40 uppercase tracking-widest">Gemini Copilot</span>
+            </div>
+            <p class="text-xs text-gray-400">Automated CISO-level security assessment and developer action plan</p>
+          </div>
+        </div>
+        <button id="btn-generate-ai-briefing" class="cursor-pointer px-4 py-2 rounded-lg bg-gradient-to-r from-neon-purple/30 to-neon-blue/30 hover:from-neon-purple/50 hover:to-neon-blue/50 text-white font-semibold text-xs border border-neon-purple/40 shadow-[0_0_20px_rgba(123,47,255,0.2)] transition-all flex items-center gap-2 shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Generate AI Briefing
+        </button>
+      </div>
+
+      <div id="ai-briefing-content" class="p-5 md:p-6 hidden">
+        <!-- Injected dynamically by fetchExecutiveBriefing -->
+      </div>
+    </div>
+
+    <!-- ═══ Detected Vulnerabilities Section with AI Remediation ═══ -->
     <div class="glass-card mb-8 overflow-hidden" data-animate>
       <div class="p-5 md:p-6 border-b border-white/5 bg-black/20 flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -282,7 +308,7 @@ function renderReportUI(report, containerElement) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           </div>
           <div>
-            <h3 class="text-base font-bold text-white">Detected Vulnerabilities</h3>
+            <h3 class="text-base font-bold text-white">Detected Vulnerabilities & AI Fixes</h3>
             <p class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold">${report.vulnerabilities && report.vulnerabilities.length > 0 ? report.vulnerabilities.length + ' issue' + (report.vulnerabilities.length > 1 ? 's' : '') + ' found' : 'From backend scan data'}</p>
           </div>
         </div>
@@ -295,7 +321,7 @@ function renderReportUI(report, containerElement) {
 
       <div class="p-5 md:p-6">
         ${report.vulnerabilities && report.vulnerabilities.length > 0 ? `
-          <div class="max-h-[500px] overflow-y-auto pr-1 space-y-3 custom-scrollbar">
+          <div class="space-y-4">
             ${report.vulnerabilities.map((v, i) => {
               const sevName = (v.severity || 'Medium').charAt(0).toUpperCase() + (v.severity || 'medium').slice(1).toLowerCase();
               const sevColors = {
@@ -308,18 +334,37 @@ function renderReportUI(report, containerElement) {
               const c = sevColors[sevName] || sevColors['Medium'];
               const vulnName = v.name || v.title || v.vulnerability || 'Unnamed Vulnerability';
               const vulnDesc = v.description || v.desc || '';
+              const encodedVuln = encodeURIComponent(JSON.stringify({ ...v, targetUrl: report.domain }));
+              const panelId = `ai-panel-${i}-${Math.floor(Math.random()*10000)}`;
+
               return `
-                <div class="flex items-start gap-4 p-4 rounded-xl bg-black/30 border ${c.border} hover:bg-white/[0.03] transition-colors group">
-                  <div class="flex flex-col items-center gap-1 pt-0.5 shrink-0">
-                    <span class="w-3 h-3 rounded-full ${c.dot} ${c.glow}"></span>
-                    <span class="text-[9px] font-bold ${c.text} uppercase tracking-wider">${sevName}</span>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-3 mb-1">
-                      <h4 class="text-sm font-bold text-white group-hover:text-neon-green transition-colors truncate">${vulnName}</h4>
-                      <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border ${c.bg} ${c.text} ${c.border} shrink-0">${sevName}</span>
+                <div class="rounded-xl bg-black/40 border ${c.border} overflow-hidden transition-all duration-300">
+                  <div class="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3.5 flex-1 min-w-0">
+                      <div class="flex flex-col items-center gap-1 pt-1 shrink-0">
+                        <span class="w-3 h-3 rounded-full ${c.dot} ${c.glow}"></span>
+                        <span class="text-[9px] font-bold ${c.text} uppercase tracking-wider">${sevName}</span>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 class="text-sm font-bold text-white break-all">${vulnName}</h4>
+                          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border ${c.bg} ${c.text} ${c.border}">${sevName}</span>
+                        </div>
+                        ${vulnDesc ? `<p class="text-xs text-gray-400 leading-relaxed">${vulnDesc}</p>` : ''}
+                      </div>
                     </div>
-                    ${vulnDesc ? `<p class="text-xs text-gray-400 leading-relaxed line-clamp-2">${vulnDesc}</p>` : ''}
+
+                    <button class="btn-ai-remediate cursor-pointer shrink-0 px-3.5 py-2 rounded-lg bg-neon-green/10 hover:bg-neon-green/20 text-neon-green border border-neon-green/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(0,255,157,0.1)]"
+                            data-vuln="${encodedVuln}"
+                            data-target="${panelId}">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                      ✨ AI Fix & Code Patch
+                    </button>
+                  </div>
+
+                  <!-- Expandable AI Remediation Drawer -->
+                  <div id="${panelId}" class="hidden border-t border-white/10 bg-black/60 p-4 sm:p-6 transition-all">
+                    <!-- Loaded dynamically via AI API -->
                   </div>
                 </div>`;
             }).join('')}
@@ -330,7 +375,7 @@ function renderReportUI(report, containerElement) {
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00ff9d" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             </div>
             <h4 class="text-white font-semibold text-sm mb-1">No Vulnerabilities Detected</h4>
-            <p class="text-gray-500 text-xs max-w-xs mx-auto">No backend vulnerability data is available for this scan. When the backend returns vulnerability details, they will appear here automatically.</p>
+            <p class="text-gray-500 text-xs max-w-xs mx-auto">No backend vulnerability data is available for this scan.</p>
           </div>
         `}
       </div>
@@ -359,9 +404,283 @@ function renderReportUI(report, containerElement) {
     </div>
   `;
 
+  // Attach dynamic AI event listeners
+  setupAiListeners(containerElement, report);
+
   containerElement.classList.remove('hidden');
   if (window.revealNewElements) window.revealNewElements(containerElement);
   containerElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function setupAiListeners(containerElement, report) {
+  // 1. Executive Briefing button listener
+  const briefingBtn = containerElement.querySelector('#btn-generate-ai-briefing');
+  const briefingContent = containerElement.querySelector('#ai-briefing-content');
+
+  if (briefingBtn && briefingContent) {
+    briefingBtn.addEventListener('click', async () => {
+      const originalText = briefingBtn.innerHTML;
+      briefingBtn.disabled = true;
+      briefingBtn.innerHTML = `
+        <svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Analyzing with Gemini...
+      `;
+
+      try {
+        const token = localStorage.getItem('penai_token');
+        const res = await fetch('http://localhost:5000/api/ai/executive-summary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            targetUrl: report.domain || 'Target Application',
+            score: report.score || 50,
+            severity: report.severity || 'Medium',
+            scanTime: report.scanTime || 10,
+            vulnerabilities: report.vulnerabilities || [],
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to generate briefing');
+
+        const summary = data.data;
+
+        briefingContent.innerHTML = `
+          <div class="space-y-6">
+            <!-- Executive Brief Box -->
+            <div class="bg-black/40 p-4 sm:p-5 rounded-xl border border-white/5">
+              <div class="flex items-center gap-2 mb-2 text-neon-purple font-semibold text-xs uppercase tracking-wider">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                Executive Assessment
+              </div>
+              <p class="text-xs sm:text-sm text-gray-300 leading-relaxed">${summary.executiveBrief}</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Threat Posture -->
+              <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-gray-500 block mb-1">Threat Posture</span>
+                <p class="text-xs text-white font-medium leading-relaxed">${summary.threatPosture}</p>
+              </div>
+
+              <!-- Top Priorities -->
+              <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-neon-purple block mb-2">🎯 Top Strategic Priorities</span>
+                <ul class="space-y-2">
+                  ${(summary.topPriorities || []).map((p, idx) => `
+                    <li class="text-xs text-gray-300 flex items-start gap-2">
+                      <span class="w-4 h-4 rounded-full bg-neon-purple/20 text-neon-purple border border-neon-purple/40 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">${idx + 1}</span>
+                      <span>${p}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+            </div>
+
+            <!-- Developer Checklist -->
+            ${summary.developerChecklist && summary.developerChecklist.length > 0 ? `
+              <div class="bg-black/40 p-4 rounded-xl border border-white/5">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-neon-blue block mb-2">📋 Developer Action Roadmap</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  ${summary.developerChecklist.map(item => `
+                    <div class="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/5 text-xs text-gray-300">
+                      <input type="checkbox" class="w-3.5 h-3.5 rounded border-gray-600 text-neon-green focus:ring-0 bg-black/40 cursor-pointer" />
+                      <span class="truncate">${item}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="flex items-center justify-between text-[10px] text-gray-500 pt-2 border-t border-white/5">
+              <span>Model: ${summary.generatedBy || 'Google Gemini 2.5'}</span>
+              <span class="text-neon-green flex items-center gap-1">✓ CISO Assessment Ready</span>
+            </div>
+          </div>
+        `;
+
+        briefingContent.classList.remove('hidden');
+        briefingBtn.innerHTML = '✓ Briefing Generated';
+        briefingBtn.classList.remove('from-neon-purple/30', 'to-neon-blue/30');
+        briefingBtn.classList.add('bg-neon-green/20', 'text-neon-green', 'border-neon-green/40');
+      } catch (err) {
+        alert('Could not generate AI briefing: ' + err.message);
+        briefingBtn.innerHTML = originalText;
+        briefingBtn.disabled = false;
+      }
+    });
+  }
+
+  // 2. Per-Vulnerability AI Remediation buttons
+  containerElement.querySelectorAll('.btn-ai-remediate').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const targetId = btn.dataset.target;
+      const drawer = containerElement.querySelector(`#${targetId}`);
+      if (!drawer) return;
+
+      // If already populated, toggle visibility
+      if (drawer.dataset.loaded === 'true') {
+        drawer.classList.toggle('hidden');
+        btn.innerHTML = drawer.classList.contains('hidden')
+          ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> ✨ View AI Patch`
+          : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> Hide AI Patch`;
+        return;
+      }
+
+      // First time click: load from backend
+      const rawData = decodeURIComponent(btn.dataset.vuln);
+      let vulnObj = {};
+      try {
+        vulnObj = JSON.parse(rawData);
+      } catch (err) {
+        console.error('Failed to parse vuln data:', err);
+      }
+
+      drawer.classList.remove('hidden');
+      drawer.innerHTML = `
+        <div class="py-6 flex flex-col items-center justify-center gap-3">
+          <div class="w-7 h-7 border-2 border-neon-green border-t-transparent rounded-full animate-spin"></div>
+          <span class="text-xs text-gray-400 font-mono animate-pulse">Gemini AI is crafting production-grade code patches...</span>
+        </div>
+      `;
+
+      try {
+        const token = localStorage.getItem('penai_token');
+        const res = await fetch('http://localhost:5000/api/ai/remediate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(vulnObj),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to generate AI fix');
+
+        const rem = data.data;
+        const codeFixes = rem.codeFixes || [];
+        const uniqueId = `ai-fix-${Math.floor(Math.random()*100000)}`;
+
+        drawer.innerHTML = `
+          <div class="space-y-4">
+            <!-- Header Tag -->
+            <div class="flex items-center justify-between gap-2 flex-wrap pb-2 border-b border-white/5">
+              <span class="text-[11px] font-mono text-neon-blue font-bold px-2 py-0.5 rounded bg-neon-blue/10 border border-neon-blue/20">
+                ${rem.cwe || 'Security Patch'}
+              </span>
+              <span class="text-[10px] text-gray-500 font-mono">
+                ${rem.generatedBy || 'Google Gemini AI'}
+              </span>
+            </div>
+
+            <!-- Threat & Exploit Scenario -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div class="p-3.5 rounded-lg bg-white/5 border border-white/5">
+                <span class="font-bold text-gray-400 uppercase tracking-wider block mb-1 text-[10px]">What is this?</span>
+                <p class="text-gray-300 leading-relaxed">${rem.summary || ''}</p>
+              </div>
+              <div class="p-3.5 rounded-lg bg-white/5 border border-white/5">
+                <span class="font-bold text-red-400 uppercase tracking-wider block mb-1 text-[10px]">Attacker Exploit Scenario</span>
+                <p class="text-gray-300 leading-relaxed">${rem.exploitScenario || rem.impact || ''}</p>
+              </div>
+            </div>
+
+            <!-- Tabbed Code Fixes -->
+            ${codeFixes.length > 0 ? `
+              <div>
+                <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+                  <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-neon-green"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    Production-Grade Code Fix
+                  </span>
+                  <!-- Tabs -->
+                  <div class="flex gap-1 bg-black/50 p-1 rounded-lg border border-white/5 flex-wrap">
+                    ${codeFixes.map((f, idx) => `
+                      <button class="ai-tab-btn text-[10px] font-semibold px-2.5 py-1 rounded transition-all cursor-pointer ${idx === 0 ? 'bg-neon-green/20 text-neon-green border border-neon-green/30' : 'text-gray-400 hover:text-white'}"
+                              data-group="${uniqueId}"
+                              data-idx="${idx}">
+                        ${f.language || 'Config'}
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+
+                <!-- Code Panels -->
+                ${codeFixes.map((f, idx) => `
+                  <div id="${uniqueId}-tab-${idx}" class="ai-code-panel ${idx === 0 ? '' : 'hidden'} relative rounded-xl bg-black/80 border border-gray-800 p-4 font-mono text-xs overflow-x-auto">
+                    <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-800/60 text-[10px] text-gray-500">
+                      <span>Framework: <strong class="text-gray-300">${f.framework || f.language}</strong></span>
+                      <button onclick="navigator.clipboard.writeText(this.closest('.relative').querySelector('code').textContent); this.textContent='✓ Copied!'; setTimeout(()=>this.textContent='Copy Code', 2000)"
+                              class="px-2 py-0.5 rounded bg-white/10 hover:bg-neon-green/20 hover:text-neon-green text-gray-300 text-[10px] font-sans font-semibold transition-all cursor-pointer">
+                        Copy Code
+                      </button>
+                    </div>
+                    <pre><code class="text-neon-green/90 leading-relaxed">${escapeHtml(f.code || '')}</code></pre>
+                    ${f.explanation ? `<p class="mt-2.5 pt-2 border-t border-gray-800/60 text-[11px] text-gray-400 font-sans leading-normal">${f.explanation}</p>` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            <!-- Verification Step -->
+            ${rem.verification ? `
+              <div class="p-3.5 rounded-lg bg-neon-blue/5 border border-neon-blue/20">
+                <span class="font-bold text-neon-blue uppercase tracking-wider block mb-1 text-[10px]">How to Verify This Fix</span>
+                <p class="text-xs text-gray-300 font-mono whitespace-pre-wrap">${escapeHtml(rem.verification)}</p>
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+        drawer.dataset.loaded = 'true';
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> Hide AI Patch`;
+
+        // Attach tab switching events inside the drawer
+        drawer.querySelectorAll('.ai-tab-btn').forEach(tabBtn => {
+          tabBtn.addEventListener('click', () => {
+            const group = tabBtn.dataset.group;
+            const idx = tabBtn.dataset.idx;
+
+            // Deactivate other tabs in this group
+            drawer.querySelectorAll(`.ai-tab-btn[data-group="${group}"]`).forEach(t => {
+              t.className = 'ai-tab-btn text-[10px] font-semibold px-2.5 py-1 rounded transition-all cursor-pointer text-gray-400 hover:text-white';
+            });
+            tabBtn.className = 'ai-tab-btn text-[10px] font-semibold px-2.5 py-1 rounded transition-all cursor-pointer bg-neon-green/20 text-neon-green border border-neon-green/30';
+
+            // Switch code panels
+            drawer.querySelectorAll(`.ai-code-panel`).forEach(p => p.classList.add('hidden'));
+            const targetPanel = drawer.querySelector(`#${group}-tab-${idx}`);
+            if (targetPanel) targetPanel.classList.remove('hidden');
+          });
+        });
+
+      } catch (err) {
+        drawer.innerHTML = `
+          <div class="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+            Failed to generate AI remediation: ${err.message}
+          </div>
+        `;
+      }
+    });
+  });
 }
 
 function initScanner() {

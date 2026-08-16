@@ -30,9 +30,13 @@ const scanSchema = new mongoose.Schema({
         severity: { type: String, enum: ['Critical', 'High', 'Medium', 'Low', 'Info'] },
         solution: { type: String },
         url: { type: String },
+        aiRemediation: { type: Object },
       },
     ],
     default: [],
+  },
+  aiSummary: {
+    type: Object,
   },
   status: {
     type: String,
