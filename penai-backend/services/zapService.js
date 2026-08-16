@@ -1,9 +1,17 @@
 const axios = require('axios');
+const https = require('https');
 
 const ZAP_HOST = process.env.ZAP_HOST || '127.0.0.1';
 const ZAP_PORT = parseInt(process.env.ZAP_PORT, 10) || 8080;
 const ZAP_API_KEY = process.env.ZAP_API_KEY || 'penai_zap_key_2026';
 const ZAP_BASE_URL = `http://${ZAP_HOST}:${ZAP_PORT}`;
+
+// Realistic browser User-Agent so WAFs/CDNs don't block ZAP
+const REAL_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
+
+// Reusable HTTPS agent that accepts ZAP's self-signed certificate
+const zapSslAgent = new https.Agent({ rejectUnauthorized: false });
 
 /**
  * Helper to call ZAP REST API endpoints directly via axios.
@@ -73,27 +81,81 @@ const getOverallSeverity = (vulnerabilities) => {
 };
 
 /**
- * Seed ZAP's sites tree by proxying a request through ZAP.
- * This ensures the target URL is in ZAP's scan tree before active scanning.
+ * Configure ZAP for optimal HTTPS scanning:
+ * - Set a real browser User-Agent (WAFs block the default ZAP one)
+ * - Set performance limits (spider depth, scan duration caps)
+ * - Increase scan thread count for faster results
+ */
+const configureZapForScan = async () => {
+  const settings = [
+    // --- CRITICAL: Use a real browser User-Agent ---
+    ['/JSON/network/action/setDefaultUserAgent/', { String: REAL_USER_AGENT }],
+
+    // --- Spider limits ---
+    ['/JSON/spider/action/setOptionMaxDepth/', { Integer: '5' }],
+    ['/JSON/spider/action/setOptionMaxDuration/', { Integer: '3' }],
+    // Accept all SSL certs during spider
+    ['/JSON/spider/action/setOptionAcceptCookies/', { Boolean: 'true' }],
+
+    // --- Active Scan limits ---
+    ['/JSON/ascan/action/setOptionThreadPerHost/', { Integer: '10' }],
+    ['/JSON/ascan/action/setOptionMaxRuleDurationInMins/', { Number: '2' }],
+    ['/JSON/ascan/action/setOptionMaxScanDurationInMins/', { Number: '10' }],
+  ];
+
+  for (const [path, params] of settings) {
+    try {
+      await zapApi(path, params);
+    } catch (err) {
+      // Some options may not exist in older ZAP versions — skip gracefully
+    }
+  }
+};
+
+/**
+ * Seed ZAP's sites tree by sending multiple requests through ZAP as a proxy.
+ * This is the KEY step for HTTPS — ZAP intercepts the SSL connection and
+ * adds the site + response headers to its scan tree for passive analysis.
  */
 const seedSiteTree = async (targetUrl) => {
-  try {
-    await axios.get(targetUrl, {
-      proxy: { host: ZAP_HOST, port: ZAP_PORT },
-      timeout: 30000,
-      validateStatus: () => true, // Accept any status
-    });
-    return true;
-  } catch (err) {
-    console.warn('Proxy seed warning:', err.message);
-    // Fallback: try ZAP API accessUrl
+  const isHttps = targetUrl.toLowerCase().startsWith('https://');
+
+  // Seed multiple pages through ZAP proxy to maximize passive scan coverage
+  const urlsToSeed = [
+    targetUrl,
+    targetUrl.replace(/\/$/, '') + '/robots.txt',
+    targetUrl.replace(/\/$/, '') + '/sitemap.xml',
+  ];
+
+  let seeded = false;
+  for (const url of urlsToSeed) {
     try {
-      await zapApi('/JSON/core/action/accessUrl/', { url: targetUrl, followRedirects: 'true' });
-      return true;
-    } catch (err2) {
-      console.warn('accessUrl fallback warning:', err2.message);
-      return false;
+      await axios.get(url, {
+        proxy: { host: ZAP_HOST, port: ZAP_PORT },
+        timeout: 20000,
+        validateStatus: () => true,
+        headers: { 'User-Agent': REAL_USER_AGENT },
+        ...(isHttps ? { httpsAgent: zapSslAgent } : {}),
+      });
+      seeded = true;
+    } catch (err) {
+      // Individual page seed failures are ok
     }
+  }
+
+  if (seeded) {
+    console.log('Site tree seeded successfully via proxy for:', targetUrl);
+    return true;
+  }
+
+  // Fallback: ZAP API accessUrl
+  try {
+    await zapApi('/JSON/core/action/accessUrl/', { url: targetUrl, followRedirects: 'true' });
+    console.log('Site tree seeded via ZAP accessUrl for:', targetUrl);
+    return true;
+  } catch (err2) {
+    console.warn('All seeding methods failed for:', targetUrl, err2.message);
+    return false;
   }
 };
 
@@ -106,7 +168,11 @@ const waitForSiteInTree = async (targetUrl, maxWaitMs = 15000) => {
     try {
       const data = await zapApi('/JSON/core/view/sites/');
       const sites = data.sites || [];
-      if (sites.some((s) => targetUrl.startsWith(s) || s.startsWith(targetUrl.replace(/\/$/, '')))) {
+      const normalizedTarget = targetUrl.replace(/\/$/, '').toLowerCase();
+      if (sites.some((s) => {
+        const ns = s.replace(/\/$/, '').toLowerCase();
+        return normalizedTarget.startsWith(ns) || ns.startsWith(normalizedTarget);
+      })) {
         return true;
       }
     } catch (e) {
@@ -115,6 +181,57 @@ const waitForSiteInTree = async (targetUrl, maxWaitMs = 15000) => {
     await new Promise((r) => setTimeout(r, 1000));
   }
   return false;
+};
+
+/**
+ * Collect ALL alerts from ZAP — both passive and active.
+ * Uses multiple strategies to ensure we get HTTPS passive findings.
+ */
+const collectAlerts = async (targetUrl) => {
+  let allAlerts = [];
+
+  // Strategy 1: Fetch alerts by baseurl
+  try {
+    const data = await zapApi('/JSON/core/view/alerts/', {
+      baseurl: targetUrl,
+      start: '0',
+      count: '500',
+    });
+    allAlerts = data.alerts || [];
+  } catch (e) {
+    console.warn('Alert fetch by baseurl failed:', e.message);
+  }
+
+  // Strategy 2: If no alerts found, try fetching ALL alerts and filter
+  if (allAlerts.length === 0) {
+    try {
+      const data = await zapApi('/JSON/core/view/alerts/', {
+        start: '0',
+        count: '500',
+      });
+      const raw = data.alerts || [];
+      const targetDomain = new URL(targetUrl).hostname;
+      allAlerts = raw.filter((a) => {
+        try {
+          return new URL(a.url).hostname.includes(targetDomain);
+        } catch {
+          return false;
+        }
+      });
+    } catch (e) {
+      console.warn('Alert fetch all failed:', e.message);
+    }
+  }
+
+  // Strategy 3: Also check passive scan alerts specifically
+  try {
+    const pscanData = await zapApi('/JSON/pscan/view/recordsToScan/');
+    console.log('Passive scan records remaining:', pscanData.recordsToScan);
+  } catch (e) {
+    // ignore
+  }
+
+  return allAlerts;
 };
 
 /**
@@ -135,12 +252,23 @@ const executeZapScan = async (targetUrl, onProgress = () => {}) => {
     );
   }
 
-  // 2. Seed the site tree by proxying a request through ZAP
-  onProgress('Accessing target through ZAP proxy...', 5);
-  await seedSiteTree(targetUrl);
+  // 2. Configure ZAP for optimal HTTPS scanning
+  onProgress('Configuring scanner for HTTPS targets...', 3);
+  await configureZapForScan();
 
-  // 3. Start Spider Scan
-  onProgress('Starting ZAP Spider crawl...', 8);
+  // 3. Seed the site tree (critical for HTTPS)
+  onProgress('Accessing target through ZAP proxy...', 6);
+  const seedSuccess = await seedSiteTree(targetUrl);
+
+  // Give ZAP a moment to process passive scan rules on the seeded responses
+  await new Promise((r) => setTimeout(r, 3000));
+
+  // 4. Verify site is in ZAP's tree
+  const inTree = await waitForSiteInTree(targetUrl);
+  console.log('Target in ZAP sites tree:', inTree);
+
+  // 5. Start Spider Scan
+  onProgress('Starting ZAP Spider crawl...', 10);
   const spiderData = await zapApi('/JSON/spider/action/scan/', { url: targetUrl });
   const spiderId = spiderData.scan;
 
@@ -149,21 +277,47 @@ const executeZapScan = async (targetUrl, onProgress = () => {}) => {
     await new Promise((r) => setTimeout(r, 2000));
     const statusData = await zapApi('/JSON/spider/view/status/', { scanId: spiderId });
     spiderProgress = parseInt(statusData.status, 10) || 0;
-    const currentPct = 10 + Math.floor((spiderProgress / 100) * 35); // 10% -> 45%
+    const currentPct = 10 + Math.floor((spiderProgress / 100) * 30); // 10% -> 40%
     onProgress(`Spider crawling target... ${spiderProgress}%`, currentPct);
   }
 
-  // 4. Wait for site to be populated in the tree
-  onProgress('Spider complete. Preparing Active Scan...', 47);
-  const inTree = await waitForSiteInTree(targetUrl);
-  if (!inTree) {
-    console.warn('Target URL not found in ZAP sites tree after spider. Active scan may be limited.');
+  // Check how many URLs the spider found
+  let spiderUrlCount = 0;
+  try {
+    const resultsData = await zapApi('/JSON/spider/view/results/', { scanId: spiderId });
+    spiderUrlCount = (resultsData.results || []).length;
+    console.log(`Spider found ${spiderUrlCount} URLs`);
+  } catch (e) {
+    // ignore
   }
 
-  // 5. Start Active Security Scan
+  // Give ZAP time to run passive scan rules on spider results
+  onProgress('Analyzing spider results with passive scanner...', 42);
+  await new Promise((r) => setTimeout(r, 5000));
+
+  // 6. Wait for passive scan to finish processing
+  onProgress('Running passive security analysis...', 45);
+  let pscanWaitCount = 0;
+  while (pscanWaitCount < 10) {
+    try {
+      const pscanData = await zapApi('/JSON/pscan/view/recordsToScan/');
+      const remaining = parseInt(pscanData.recordsToScan, 10) || 0;
+      if (remaining === 0) break;
+      onProgress(`Passive scanner processing... (${remaining} items remaining)`, 46);
+    } catch (e) {
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 2000));
+    pscanWaitCount++;
+  }
+
+  // 7. Start Active Security Scan
   onProgress('Starting Active Vulnerability Scan...', 50);
   let ascanId = null;
   try {
+    await zapApi('/JSON/ascan/action/stopAllScans/').catch(() => {});
+    await new Promise((r) => setTimeout(r, 1000));
+
     const ascanData = await zapApi('/JSON/ascan/action/scan/', {
       url: targetUrl,
       recurse: 'true',
@@ -175,26 +329,53 @@ const executeZapScan = async (targetUrl, onProgress = () => {}) => {
 
   if (ascanId) {
     let ascanProgress = 0;
+    let lastProgressChange = Date.now();
+    let lastProgressValue = -1;
+    const STUCK_TIMEOUT_MS = 3 * 60 * 1000;
+    const MAX_TOTAL_MS = 12 * 60 * 1000;
+    const ascanStartTime = Date.now();
+
     while (ascanProgress < 100) {
       await new Promise((r) => setTimeout(r, 3000));
+
       const statusData = await zapApi('/JSON/ascan/view/status/', { scanId: ascanId });
       ascanProgress = parseInt(statusData.status, 10) || 0;
-      const currentPct = 50 + Math.floor((ascanProgress / 100) * 45); // 50% -> 95%
+      const currentPct = 50 + Math.floor((ascanProgress / 100) * 45);
       onProgress(`Active Scanner running attack vectors... ${ascanProgress}%`, currentPct);
+
+      if (ascanProgress !== lastProgressValue) {
+        lastProgressValue = ascanProgress;
+        lastProgressChange = Date.now();
+      }
+
+      if (ascanProgress === 0 && Date.now() - lastProgressChange > STUCK_TIMEOUT_MS) {
+        console.warn('Active scan stuck at 0% — stopping and collecting passive results.');
+        await zapApi('/JSON/ascan/action/stop/', { scanId: ascanId }).catch(() => {});
+        onProgress('Active scan timed out — collecting passive findings...', 90);
+        break;
+      }
+
+      if (Date.now() - ascanStartTime > MAX_TOTAL_MS) {
+        console.warn('Active scan exceeded max duration — stopping.');
+        await zapApi('/JSON/ascan/action/stop/', { scanId: ascanId }).catch(() => {});
+        onProgress(`Scan time limit reached (${ascanProgress}%) — collecting results...`, 92);
+        break;
+      }
     }
   } else {
-    onProgress('Active Scanner skipped — analyzing passive findings...', 90);
+    onProgress('Active Scanner skipped — collecting passive findings...', 90);
   }
 
-  // 6. Fetch Alerts / Findings
-  onProgress('Scanning complete. Analyzing OWASP ZAP alerts...', 97);
-  const alertsData = await zapApi('/JSON/core/view/alerts/', { baseurl: targetUrl });
-  const rawAlerts = alertsData.alerts || [];
+  // 8. Fetch ALL Alerts (passive + active)
+  onProgress('Collecting security findings...', 97);
+  const rawAlerts = await collectAlerts(targetUrl);
 
-  // Deduplicate alerts by name + url
+  console.log(`Total raw alerts collected: ${rawAlerts.length}`);
+
+  // Deduplicate alerts by name (not by name+url, to reduce noise)
   const seen = new Set();
   const uniqueAlerts = rawAlerts.filter((alert) => {
-    const key = (alert.name || alert.alert) + '|' + (alert.url || '');
+    const key = (alert.name || alert.alert);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -212,6 +393,8 @@ const executeZapScan = async (targetUrl, onProgress = () => {}) => {
   const score = calculateScore(vulnerabilities);
   const severity = getOverallSeverity(vulnerabilities);
   const scanTime = Math.round((Date.now() - startTime) / 1000);
+
+  console.log(`Final results: ${vulnerabilities.length} unique findings, score: ${score}, severity: ${severity}`);
 
   onProgress('Scan finished successfully!', 100);
 

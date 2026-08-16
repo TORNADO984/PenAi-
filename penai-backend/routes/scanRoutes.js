@@ -4,6 +4,7 @@ const {
   createScan,
   getScans,
   getScanById,
+  deleteScan,
   scanValidation,
 } = require('../controllers/scanController');
 const { protect } = require('../middleware/authMiddleware');
@@ -18,6 +19,7 @@ router.route('/')
 
 // Routes mapped to /api/scans/:id
 router.route('/:id')
-  .get(getScanById);
+  .get(getScanById)
+  .delete(deleteScan);
 
 module.exports = router;

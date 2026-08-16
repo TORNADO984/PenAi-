@@ -147,9 +147,40 @@ const getScanById = async (req, res, next) => {
   }
 };
 
+// @route   DELETE /api/scans/:id
+// @desc    Delete a scan by ID
+// @access  Private
+const deleteScan = async (req, res, next) => {
+  try {
+    const scan = await Scan.findById(req.params.id);
+
+    if (!scan) {
+      res.status(404);
+      throw new Error('Scan not found');
+    }
+
+    // Make sure the logged-in user owns this scan
+    if (scan.user.toString() !== req.user.id) {
+      res.status(401);
+      throw new Error('Not authorized to delete this scan');
+    }
+
+    await scan.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Scan deleted successfully',
+      id: req.params.id,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createScan,
   getScans,
   getScanById,
+  deleteScan,
   scanValidation,
 };
