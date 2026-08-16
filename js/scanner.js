@@ -382,17 +382,17 @@ function renderReportUI(report, containerElement) {
     </div>
 
     <div class="flex flex-wrap gap-3 mb-6" data-animate>
-      <button onclick="alert('PDF export simulated!')" class="btn-outline text-xs px-4 py-2 cursor-pointer flex items-center gap-2">
+      <button id="btn-export-pdf" class="btn-outline text-xs px-4 py-2 cursor-pointer flex items-center gap-2 hover:border-neon-green hover:text-neon-green transition-all shadow-[0_0_10px_rgba(0,255,157,0.05)]">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-        Export PDF
+        Export PDF Report
       </button>
-      <button onclick="alert('JSON export simulated!')" class="btn-outline text-xs px-4 py-2 cursor-pointer flex items-center gap-2">
+      <button id="btn-export-json" class="btn-outline text-xs px-4 py-2 cursor-pointer flex items-center gap-2 hover:border-neon-blue hover:text-neon-blue transition-all shadow-[0_0_10px_rgba(0,184,255,0.05)]">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg>
-        Export JSON
+        Export JSON Data
       </button>
-      <button onclick="alert('Shared to community!')" class="btn-outline text-xs px-4 py-2 cursor-pointer flex items-center gap-2">
+      <button id="btn-share-summary" class="btn-outline text-xs px-4 py-2 cursor-pointer flex items-center gap-2 hover:border-neon-purple hover:text-neon-purple transition-all shadow-[0_0_10px_rgba(123,47,255,0.05)]">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        Share to Community
+        Share Summary
       </button>
     </div>
 
@@ -422,7 +422,355 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+// ═══════════════════ REPORT EXPORT ENGINE (PDF / JSON / SHARE) ═══════════════════
+
+function exportReportToPdf(report) {
+  const jspdfModule = window.jspdf;
+  if (!jspdfModule || !jspdfModule.jsPDF) {
+    alert('PDF export engine is loading. Please try again in a moment.');
+    return;
+  }
+
+  const { jsPDF } = jspdfModule;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  let y = 14;
+
+  // Colors
+  const darkBg = [12, 14, 18];
+  const cardBg = [22, 25, 32];
+  const neonGreen = [0, 235, 145];
+  const neonBlue = [0, 184, 255];
+  const textWhite = [255, 255, 255];
+  const textGray = [160, 165, 180];
+  const borderCol = [45, 50, 65];
+
+  const fillRect = (x, y, w, h, rgb) => {
+    doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+    doc.rect(x, y, w, h, 'F');
+  };
+
+  // Top Dark Header Banner
+  fillRect(0, 0, pageWidth, 26, darkBg);
+  fillRect(0, 25, pageWidth, 1, neonGreen);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(neonGreen[0], neonGreen[1], neonGreen[2]);
+  doc.text('PENAI', margin, 12);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(textWhite[0], textWhite[1], textWhite[2]);
+  doc.text('AUTOMATED PENETRATION TESTING & SECURITY AUDIT REPORT', margin + 22, 12);
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+  const dateStr = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  doc.text(`Generated: ${dateStr}   |   Engine: OWASP ZAP Core + Gemini AI   |   Confidential`, margin, 19);
+
+  y = 33;
+
+  // Target Overview Card
+  fillRect(margin, y, pageWidth - (margin * 2), 32, cardBg);
+  doc.setDrawColor(borderCol[0], borderCol[1], borderCol[2]);
+  doc.rect(margin, y, pageWidth - (margin * 2), 32);
+
+  // Target Name
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(neonGreen[0], neonGreen[1], neonGreen[2]);
+  doc.text('AUDITED TARGET DOMAIN', margin + 5, y + 8);
+
+  doc.setFontSize(13);
+  doc.setTextColor(textWhite[0], textWhite[1], textWhite[2]);
+  doc.text(report.domain || 'Target Web Application', margin + 5, y + 16);
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+  doc.text(`Scan Duration: ${report.scanTime || '15'}s   |   Status: Complete & Verified   |   Standard: OWASP Top 10`, margin + 5, y + 24);
+
+  // Score Box on Right
+  const scoreBoxX = pageWidth - margin - 34;
+  const score = report.score !== undefined ? report.score : 50;
+  const scoreColor = score >= 70 ? neonGreen : score >= 45 ? [255, 175, 0] : [255, 68, 68];
+  const scoreLabel = score >= 70 ? 'SECURE' : score >= 45 ? 'AT RISK' : 'CRITICAL';
+
+  fillRect(scoreBoxX, y + 3.5, 29, 25, [14, 16, 22]);
+  doc.setDrawColor(scoreColor[0], scoreColor[1], scoreColor[2]);
+  doc.rect(scoreBoxX, y + 3.5, 29, 25);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.setTextColor(scoreColor[0], scoreColor[1], scoreColor[2]);
+  doc.text(`${score}`, scoreBoxX + 14.5, y + 14, { align: 'center' });
+
+  doc.setFontSize(6.5);
+  doc.text(`/100 - ${scoreLabel}`, scoreBoxX + 14.5, y + 21, { align: 'center' });
+
+  y += 39;
+
+  // Executive Summary section
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(neonBlue[0], neonBlue[1], neonBlue[2]);
+  doc.text('1. EXECUTIVE SECURITY SUMMARY & POSTURE', margin, y);
+  y += 5;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+
+  const vulns = report.vulnerabilities || report.findings || [];
+  const critCount = vulns.filter(v => (v.severity || '').toLowerCase() === 'critical').length;
+  const highCount = vulns.filter(v => (v.severity || '').toLowerCase() === 'high').length;
+  const medCount = vulns.filter(v => (v.severity || '').toLowerCase() === 'medium').length;
+  const lowCount = vulns.filter(v => (v.severity || '').toLowerCase() === 'low').length;
+  const infoCount = vulns.filter(v => (v.severity || '').toLowerCase() === 'info').length;
+
+  let summaryParagraph = `PenAI automated security audit conducted against ${report.domain} produced an overall health rating of ${score}/100 (${scoreLabel}). A total of ${vulns.length} security finding(s) were identified across active vulnerability probing and passive header/cookie analysis.`;
+  if (critCount > 0 || highCount > 0) {
+    summaryParagraph += ` High-priority critical security flaws were observed that warrant immediate remediation by the engineering team to prevent exploitation.`;
+  } else {
+    summaryParagraph += ` Baseline security controls are active, with several security hardening recommendations identified to enhance the attack defense posture.`;
+  }
+
+  const splitSummary = doc.splitTextToSize(summaryParagraph, pageWidth - (margin * 2));
+  doc.text(splitSummary, margin, y);
+  y += (splitSummary.length * 4.2) + 5;
+
+  // Vulnerability Statistics Table
+  const statColumns = [
+    { header: 'Critical', dataKey: 'crit' },
+    { header: 'High', dataKey: 'high' },
+    { header: 'Medium', dataKey: 'med' },
+    { header: 'Low', dataKey: 'low' },
+    { header: 'Informational', dataKey: 'info' },
+    { header: 'Total Issues', dataKey: 'total' },
+  ];
+  const statRows = [{
+    crit: String(critCount),
+    high: String(highCount),
+    med: String(medCount),
+    low: String(lowCount),
+    info: String(infoCount),
+    total: String(vulns.length),
+  }];
+
+  if (doc.autoTable) {
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      columns: statColumns,
+      body: statRows,
+      theme: 'grid',
+      styles: {
+        fontSize: 8,
+        cellPadding: 2.2,
+        halign: 'center',
+        textColor: [240, 240, 240],
+        fillColor: [20, 22, 28],
+        lineColor: [45, 50, 65],
+        lineWidth: 0.2,
+      },
+      headStyles: {
+        fillColor: [30, 34, 45],
+        textColor: neonGreen,
+        fontStyle: 'bold',
+      },
+    });
+    y = doc.lastAutoTable.finalY + 7;
+  }
+
+  // Findings Table
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(neonBlue[0], neonBlue[1], neonBlue[2]);
+  doc.text('2. DETECTED SECURITY FINDINGS', margin, y);
+  y += 4.5;
+
+  if (vulns.length > 0 && doc.autoTable) {
+    const findingsRows = vulns.map((v, i) => [
+      String(i + 1),
+      v.name || v.title || 'Security Finding',
+      (v.severity || 'Medium').toUpperCase(),
+      v.url || report.domain || '/',
+    ]);
+
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['#', 'Vulnerability Finding', 'Severity', 'Target / URL']],
+      body: findingsRows,
+      theme: 'striped',
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 2,
+        textColor: [220, 220, 230],
+        lineColor: [35, 38, 48],
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: [24, 28, 38],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 26, fontStyle: 'bold', halign: 'center' },
+        3: { cellWidth: 'auto' },
+      },
+      didParseCell: function(data) {
+        if (data.section === 'body' && data.column.index === 2) {
+          const val = String(data.cell.raw || '');
+          if (val.includes('CRITICAL')) data.cell.styles.textColor = [255, 75, 75];
+          else if (val.includes('HIGH')) data.cell.styles.textColor = [255, 140, 0];
+          else if (val.includes('MEDIUM')) data.cell.styles.textColor = [255, 200, 0];
+          else if (val.includes('LOW')) data.cell.styles.textColor = [80, 160, 255];
+          else data.cell.styles.textColor = [150, 150, 150];
+        }
+      }
+    });
+
+    y = doc.lastAutoTable.finalY + 8;
+  }
+
+  // Detailed Remediation Guidance (Add new page if near bottom)
+  if (y > pageHeight - 50) {
+    doc.addPage();
+    y = 16;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(neonBlue[0], neonBlue[1], neonBlue[2]);
+  doc.text('3. DETAILED REMEDIATION & ACTION ROADMAP', margin, y);
+  y += 6;
+
+  vulns.slice(0, 15).forEach((v, idx) => {
+    if (y > pageHeight - 35) {
+      doc.addPage();
+      y = 16;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(textWhite[0], textWhite[1], textWhite[2]);
+    doc.text(`${idx + 1}. ${v.name || 'Security Finding'} [${(v.severity || 'Medium').toUpperCase()}]`, margin, y);
+    y += 4;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+
+    const descText = v.description || v.desc || 'Identified during automated penetration testing.';
+    const splitDesc = doc.splitTextToSize(`Description: ${descText}`, pageWidth - (margin * 2));
+    doc.text(splitDesc, margin, y);
+    y += (splitDesc.length * 3.5);
+
+    if (v.solution || v.fix) {
+      const fixText = v.solution || v.fix;
+      const splitFix = doc.splitTextToSize(`Remediation: ${fixText}`, pageWidth - (margin * 2));
+      doc.setTextColor(neonGreen[0], neonGreen[1], neonGreen[2]);
+      doc.text(splitFix, margin, y);
+      y += (splitFix.length * 3.5);
+    }
+    y += 3;
+  });
+
+  // Footer on all pages
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(110, 115, 130);
+    doc.text('CONFIDENTIAL • PenAI Automated Security Audit Report • Authorized Use Only', margin, pageHeight - 6);
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
+  }
+
+  const filename = `penai-audit-${(report.domain || 'report').replace(/[^a-zA-Z0-9.-]/g, '_')}-${Date.now()}.pdf`;
+  doc.save(filename);
+}
+
+function exportReportToJson(report) {
+  const vulns = report.vulnerabilities || report.findings || [];
+  const exportData = {
+    tool: 'PenAI - Automated Penetration Testing & AI Security Engine',
+    version: '1.0.0',
+    generatedAt: new Date().toISOString(),
+    targetUrl: report.domain || 'Unknown Target',
+    securityScore: report.score !== undefined ? report.score : 0,
+    overallSeverity: report.score >= 70 ? 'Low' : report.score >= 45 ? 'Medium' : 'Critical',
+    scanDurationSeconds: parseFloat(report.scanTime) || 0,
+    summary: {
+      totalVulnerabilities: vulns.length,
+      critical: vulns.filter(v => (v.severity || '').toLowerCase() === 'critical').length,
+      high: vulns.filter(v => (v.severity || '').toLowerCase() === 'high').length,
+      medium: vulns.filter(v => (v.severity || '').toLowerCase() === 'medium').length,
+      low: vulns.filter(v => (v.severity || '').toLowerCase() === 'low').length,
+      info: vulns.filter(v => (v.severity || '').toLowerCase() === 'info').length,
+    },
+    vulnerabilities: vulns,
+    disclaimer: 'This report is generated for authorized security auditing and educational purposes only.'
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `penai-scan-${(report.domain || 'target').replace(/[^a-zA-Z0-9.-]/g, '_')}-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function shareReportSummary(report, btnEl) {
+  const vulnsCount = (report.vulnerabilities || report.findings || []).length;
+  const score = report.score !== undefined ? report.score : 50;
+  const label = score >= 70 ? 'Secure' : score >= 45 ? 'At Risk' : 'Critical';
+
+  const textToCopy = `🛡️ PenAI Security Assessment Summary\nTarget: ${report.domain}\nSecurity Score: ${score}/100 (${label})\nVulnerabilities Identified: ${vulnsCount}\nEngine: OWASP ZAP + Google Gemini AI\nAudit Date: ${new Date().toLocaleDateString()}\nGenerated with PenAI (https://penai.dev)`;
+
+  navigator.clipboard.writeText(textToCopy).then(() => {
+    if (btnEl) {
+      const originalHtml = btnEl.innerHTML;
+      btnEl.innerHTML = `<span class="text-neon-green font-semibold">✓ Copied to Clipboard!</span>`;
+      setTimeout(() => {
+        btnEl.innerHTML = originalHtml;
+      }, 2500);
+    }
+  }).catch(() => {
+    alert('Summary:\n\n' + textToCopy);
+  });
+}
+
 function setupAiListeners(containerElement, report) {
+  // --- EXPORT LISTENERS ---
+  const btnExportPdf = containerElement.querySelector('#btn-export-pdf');
+  const btnExportJson = containerElement.querySelector('#btn-export-json');
+  const btnShareSummary = containerElement.querySelector('#btn-share-summary');
+
+  if (btnExportPdf) {
+    btnExportPdf.addEventListener('click', () => exportReportToPdf(report));
+  }
+  if (btnExportJson) {
+    btnExportJson.addEventListener('click', () => exportReportToJson(report));
+  }
+  if (btnShareSummary) {
+    btnShareSummary.addEventListener('click', () => shareReportSummary(report, btnShareSummary));
+  }
+
   // 1. Executive Briefing button listener
   const briefingBtn = containerElement.querySelector('#btn-generate-ai-briefing');
   const briefingContent = containerElement.querySelector('#ai-briefing-content');
