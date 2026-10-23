@@ -21,10 +21,10 @@ A web application security workspace combining OWASP ZAP scanning, AI-assisted r
 ## Homepage preview
 
 <p align="center">
-  <img src="docs/screenshots/homepage.jpg" alt="PenAI mobile homepage with its dark theme, security scanning headline, and Start Free Scan button" width="360" />
+  <img src="docs/screenshots/scanner-home.png" alt="PenAI AI Penetration Test Scanner screen with target URL input and scan button" width="1200" />
 </p>
 
-*Mobile homepage captured from the project running locally. See the [setup guide](docs/SETUP.md) to run your own preview.*
+*PenAI scanner screen captured from the project running locally. See the [setup guide](docs/SETUP.md) to run your own preview.*
 
 ## Overview
 
