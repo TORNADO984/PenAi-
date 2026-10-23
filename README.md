@@ -18,6 +18,14 @@ A web application security workspace combining OWASP ZAP scanning, AI-assisted r
 
 ---
 
+## Homepage preview
+
+<p align="center">
+  <img src="docs/screenshots/homepage.jpg" alt="PenAI mobile homepage with its dark theme, security scanning headline, and Start Free Scan button" width="360" />
+</p>
+
+*Mobile homepage captured from the project running locally. See the [setup guide](docs/SETUP.md) to run your own preview.*
+
 ## Overview
 
 PenAI brings the security testing workflow into one dark, responsive interface: submit an authorized target, follow scan progress, review findings, request remediation guidance, and export the assessment.
