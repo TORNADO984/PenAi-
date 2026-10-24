@@ -11,6 +11,7 @@ A web application security workspace combining OWASP ZAP scanning, AI-assisted r
 ![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white)
 ![ZAP](https://img.shields.io/badge/Scanning-OWASP%20ZAP-00549E)
 ![Gemini](https://img.shields.io/badge/AI-Google%20Gemini-8E75B2?logo=googlegemini&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 [Get started](#get-started) · [Features](#features) · [Setup guide](docs/SETUP.md) · [API reference](docs/API.md) · [Contribute](CONTRIBUTING.md)
 
@@ -161,7 +162,7 @@ For reproducible bugs and feature requests, [open an issue](https://github.com/T
 
 ## License
 
-The backend package metadata declares `ISC`, but the repository does not currently include a root license file. Refer to the repository owner for licensing terms.
+PenAI is released under the [MIT License](LICENSE). Copyright (c) 2026 TORNADO984.
 
 ---
 
